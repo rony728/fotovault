@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FotoVault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0e0f0d;
+      --surface: #161714;
+      --border:  #2a2b27;
+      --accent:  #c8f060;
+      --accent2: #60f0b4;
+      --text:    #e8e9e2;
+      --muted:   #6b6c65;
+      --danger:  #f06060;
+      --radius:  14px;
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; }
+    .shell { max-width: 680px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    header { margin-bottom: 48px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .logo { font-family: 'DM Serif Display', serif; font-size: clamp(2rem, 8vw, 3rem); line-height: 1; letter-spacing: -1px; }
+    .logo span { color: var(--accent); font-style: italic; }
+    .tagline { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; text-align: right; line-height: 1.6; }
+
+    .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; margin-bottom: 28px; }
+    .tab { flex: 1; background: none; border: none; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; padding: 10px; border-radius: 10px; cursor: pointer; transition: all .2s; }
+    .tab.active { background: var(--accent); color: #0e0f0d; font-weight: 500; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; position: relative; overflow: hidden; }
+    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(200,240,96,.04); }
+    .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { font-size: 40px; margin-bottom: 12px; display: block; }
+    .drop-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 6px; }
+    .drop-sub { color: var(--muted); font-size: 13px; }
+
+    #preview-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .preview-thumb { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); }
+    .preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-thumb .rm { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,.7); border: none; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    .field { margin-top: 20px; }
+    .field label { display: block; font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+    .field textarea, .field input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 12px 14px; resize: vertical; transition: border-color .2s; outline: none; }
+    .field textarea:focus, .field input:focus { border-color: var(--accent); }
+    .field textarea { min-height: 80px; }
+
+    .btn { display: block; width: 100%; margin-top: 20px; padding: 16px; background: var(--accent); color: #0e0f0d; border: none; border-radius: var(--radius); font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; cursor: pointer; transition: opacity .2s, transform .1s; }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface); color: var(--accent2); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent2); opacity: 1; }
+
+    #progress-wrap { margin-top: 20px; display: none; }
+    .prog-outer { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+    .prog-inner { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width .3s; }
+    #progress-label { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+
+    #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 12px 24px; font-family: 'DM Mono', monospace; font-size: 13px; white-space: nowrap; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 1000; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error   { border-color: var(--danger); color: var(--danger); }
+
+    #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .gallery-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .2s, transform .2s; }
+    .gallery-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+    .gallery-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .card-info { padding: 10px 12px; }
+    .card-desc { font-size: 13px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+    .card-dl { display: block; width: 100%; padding: 7px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; text-align: center; text-decoration: none; transition: border-color .2s; }
+    .card-dl:hover { border-color: var(--accent2); background: rgba(96,240,180,.05); }
+
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--muted); font-family: 'DM Serif Display', serif; font-size: 1.2rem; grid-column: 1 / -1; }
+    .empty-state span { display: block; font-size: 36px; margin-bottom: 12px; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; width: 100%; max-width: 480px; transform: scale(.95); transition: transform .25s; }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; margin-bottom: 8px; }
+    .modal p { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 4px; }
+    .modal a { color: var(--accent2); }
+    code { font-family: 'DM Mono', monospace; background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--accent); word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="config-modal">
+  <div class="modal">
+    <h2>Configuración inicial</h2>
+    <p>Ingresa la URL de tu Google Apps Script (Web App) desplegado. Obtienes esta URL en el paso 5 del <strong>README.md</strong> incluido.</p>
+    <div class="field" style="margin-top:16px;">
+      <label>URL del Apps Script</label>
+      <input type="url" id="script-url-input" placeholder="https://script.google.com/macros/s/AKf.../exec" />
+    </div>
+    <button class="btn" onclick="saveConfig()" style="margin-top:16px;">Guardar y continuar</button>
+  </div>
+</div>
+
+<div class="shell">
+  <header>
+    <div class="logo">Foto<span>Vault</span></div>
+    <div class="tagline">Google Drive<br/>S3 Static Site</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-upload" onclick="switchTab('upload')">↑ Subir</button>
+    <button class="tab" id="tab-gallery" onclick="switchTab('gallery')">⊞ Galería</button>
+    <button class="tab" onclick="openConfig()" style="flex:0;padding:10px 14px;" title="Configuración">⚙</button>
+  </div>
+
+  <div class="panel active" id="panel-upload">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept="image/*" multiple />
+      <span class="drop-icon">📸</span>
+      <div class="drop-title">Selecciona o arrastra imágenes</div>
+      <div class="drop-sub">JPG · PNG · WEBP · HEIC — múltiples archivos</div>
+    </div>
+
+    <div id="preview-strip"></div>
+
+    <div class="field">
+      <label>Descripción</label>
+      <textarea id="description" placeholder="Ej: Fotos del viaje a Cartagena, enero 2025…"></textarea>
+    </div>
+
+    <div id="progress-wrap">
+      <div class="prog-outer"><div class="prog-inner" id="progress-bar"></div></div>
+      <div id="progress-label">Subiendo…</div>
+    </div>
+
+    <button class="btn" id="upload-btn" onclick="uploadFiles()" disabled>Subir a Google Drive</button>
+  </div>
+
+  <div class="panel" id="panel-gallery">
+    <button class="btn btn-secondary" onclick="loadGallery()" style="margin-bottom:20px;">↻ Actualizar galería</button>
+    <div id="gallery-grid">
+      <div class="empty-state"><span>🖼️</span>Presiona Actualizar para ver tus imágenes</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'fotovault_script_url';
+let SCRIPT_URL = localStorage.getItem(STORAGE_KEY) || '';
+
+window.addEventListener('load', () => {
+  if (!SCRIPT_URL) document.getElementById('config-modal').classList.add('open');
+  else document.getElementById('script-url-input').value = SCRIPT_URL;
+});
+
+function saveConfig() {
+  const val = document.getElementById('script-url-input').value.trim();
+  if (!val.startsWith('https://script.google.com')) { toast('URL inválida', 'error'); return; }
+  SCRIPT_URL = val;
+  localStorage.setItem(STORAGE_KEY, val);
+  document.getElementById('config-modal').classList.remove('open');
+  toast('Configuración guardada ✓', 'success');
+}
+
+function openConfig() {
+  document.getElementById('script-url-input').value = SCRIPT_URL;
+  document.getElementById('config-modal').classList.add('open');
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-upload').classList.toggle('active', tab === 'upload');
+  document.getElementById('tab-gallery').classList.toggle('active', tab === 'gallery');
+  document.getElementById('panel-upload').classList.toggle('active', tab === 'upload');
+  document.getElementById('panel-gallery').classList.toggle('active', tab === 'gallery');
+  if (tab === 'gallery') loadGallery();
+}
+
+let selectedFiles = [];
+const fileInput = document.getElementById('file-input');
+const dropzone  = document.getElementById('dropzone');
+const strip     = document.getElementById('preview-strip');
+const uploadBtn = document.getElementById('upload-btn');
+
+fileInput.addEventListener('change', e => addFiles(e.target.files));
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); addFiles(e.dataTransfer.files); });
+
+function addFiles(files) {
+  [...files].forEach(f => {
+    if (!f.type.startsWith('image/')) return;
+    const idx = selectedFiles.length;
+    selectedFiles.push(f);
+    const el = document.createElement('div');
+    el.className = 'preview-thumb';
+    el.dataset.idx = idx;
+    el.innerHTML = `<img src="${URL.createObjectURL(f)}" /><button class="rm" onclick="removeFile(${idx})">✕</button>`;
+    strip.appendChild(el);
+  });
+  uploadBtn.disabled = selectedFiles.filter(Boolean).length === 0;
+}
+
+function removeFile(idx) {
+  selectedFiles[idx] = null;
+  strip.querySelector(`[data-idx="${idx}"]`)?.remove();
+  uploadBtn.disabled = selectedFiles.filter(Boolean).length === 0;
+}
+
+async function uploadFiles() {
+  if (!SCRIPT_URL) { openConfig(); return; }
+  const files = selectedFiles.filter(Boolean);
+  if (!files.length) return;
+  const desc  = document.getElementById('description').value.trim();
+  const wrap  = document.getElementById('progress-wrap');
+  const bar   = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  uploadBtn.disabled = true;
+  wrap.style.display = 'block';
+  let done = 0;
+  for (const file of files) {
+    label.textContent = `Subiendo ${done + 1} de ${files.length}: ${file.name}`;
+    try {
+      const b64 = await toBase64(file);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'upload', filename: file.name, mimeType: file.type, data: b64, description: desc })
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Error desconocido');
+    } catch(e) { toast(`Error en ${file.name}: ${e.message}`, 'error'); }
+    done++;
+    bar.style.width = `${Math.round(done / files.length * 100)}%`;
+  }
+  label.textContent = `¡Listo! ${done} imagen${done > 1 ? 'es subidas' : ' subida'} ✓`;
+  toast(`${done} imagen${done > 1 ? 'es subidas' : ' subida'} a Google Drive ✓`, 'success');
+  setTimeout(() => {
+    selectedFiles = []; strip.innerHTML = '';
+    document.getElementById('description').value = '';
+    fileInput.value = ''; bar.style.width = '0%';
+    wrap.style.display = 'none'; uploadBtn.disabled = true;
+  }, 2500);
+}
+
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function loadGallery() {
+  if (!SCRIPT_URL) { openConfig(); return; }
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = '<div class="empty-state"><span>⏳</span>Cargando...</div>';
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=list`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+    renderGallery(json.files);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state"><span>⚠️</span>${e.message}</div>`;
+  }
+}
+
+function renderGallery(files) {
+  const grid = document.getElementById('gallery-grid');
+  if (!files || !files.length) {
+    grid.innerHTML = '<div class="empty-state"><span>📂</span>No hay imágenes aún</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  files.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.innerHTML = `
+      <img src="${f.thumbnailUrl}" loading="lazy" alt="${f.description || f.name}" />
+      <div class="card-info">
+        <div class="card-desc" title="${f.description || f.name}">${f.description || f.name}</div>
+        <div class="card-date">${new Date(f.createdTime).toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        <a class="card-dl" href="${f.downloadUrl}" target="_blank">↓ Descargar</a>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+let toastTimer;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+</script>
+</body>
+</html>
