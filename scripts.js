@@ -78,7 +78,10 @@ function removeFile(idx) {
 async function uploadFiles() {
 
   const files = selectedFiles.filter(Boolean);
-  if (!files.length) return;
+  if (!files.length) {
+    toast("No hay archivos seleccionados", "error");
+    return;
+  }
 
   const wrap = document.getElementById('progress-wrap');
   const bar = document.getElementById('progress-bar');
@@ -95,7 +98,7 @@ async function uploadFiles() {
 
     try {
 
-      // 1️⃣ Pedir URL firmada a Lambda
+      // Pedir URL firmada
       const response = await fetch(
         "https://piv5s5li0j.execute-api.us-east-1.amazonaws.com/fotovault-generate-upload-url",
         {
@@ -108,25 +111,35 @@ async function uploadFiles() {
         }
       );
 
+      if (!response.ok) {
+        throw new Error("Error al generar URL firmada");
+      }
+
       const data = await response.json();
 
       if (!data.uploadUrl) {
-        throw new Error("No se recibió URL de subida");
+        console.error("Respuesta Lambda:", data);
+        throw new Error("No se recibió uploadUrl");
       }
 
-      // 2️⃣ Subir directamente a S3
-      await fetch(data.uploadUrl, {
+      // Subir a S3
+      const upload = await fetch(data.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file
       });
 
+      if (!upload.ok) {
+        throw new Error("Error al subir a S3");
+      }
+
+      done++;
+
     } catch (error) {
+      console.error("Error subiendo:", error);
       toast(`Error en ${file.name}: ${error.message}`, "error");
-      continue;
     }
 
-    done++;
     bar.style.width = `${Math.round((done / files.length) * 100)}%`;
   }
 
