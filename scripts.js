@@ -144,18 +144,40 @@ async function uploadFiles() {
 }
 
 async function loadGallery() {
-  if (!SCRIPT_URL) return;
 
   const grid = document.getElementById('gallery-grid');
-  grid.innerHTML = 'Cargando...';
+  grid.innerHTML = "Cargando...";
 
   try {
-    const res = await fetch(`${SCRIPT_URL}?action=list`);
-    const json = await res.json();
-    if (!json.success) throw new Error(json.error);
-    renderGallery(json.files);
-  } catch (e) {
-    grid.innerHTML = e.message;
+
+    const res = await fetch(
+      "https://piv5s5li0j.execute-api.us-east-1.amazonaws.com/list-files"
+    );
+
+    const data = await res.json();
+
+    if (!data.files || !data.files.length) {
+      grid.innerHTML = "No hay imágenes aún";
+      return;
+    }
+
+    grid.innerHTML = "";
+
+    data.files.forEach(file => {
+      const card = document.createElement('div');
+      card.className = 'gallery-card';
+      card.innerHTML = `
+        <img src="${file.url}" loading="lazy" />
+        <div class="card-info">
+          <div class="card-date">${new Date(file.lastModified).toLocaleDateString()}</div>
+          <a class="card-dl" href="${file.url}" target="_blank">Descargar</a>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+  } catch (err) {
+    grid.innerHTML = "Error cargando galería";
   }
 }
 
