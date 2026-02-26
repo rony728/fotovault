@@ -100,7 +100,7 @@ async function uploadFiles() {
 
       // Pedir URL firmada
       const response = await fetch(
-        "https://piv5s5li0j.execute-api.us-east-1.amazonaws.com/fotovault-generate-upload-url",
+        "https://piv5s5li0j.execute-api.us-east-1.amazonaws.com/upload-url",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
