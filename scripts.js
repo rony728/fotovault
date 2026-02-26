@@ -76,12 +76,10 @@ function removeFile(idx) {
 }
 
 async function uploadFiles() {
-  if (!SCRIPT_URL) { configModal.classList.add('open'); return; }
 
   const files = selectedFiles.filter(Boolean);
   if (!files.length) return;
 
-  const desc = document.getElementById('description').value.trim();
   const wrap = document.getElementById('progress-wrap');
   const bar = document.getElementById('progress-bar');
   const label = document.getElementById('progress-label');
@@ -92,28 +90,44 @@ async function uploadFiles() {
   let done = 0;
 
   for (const file of files) {
+
     label.textContent = `Subiendo ${done + 1} de ${files.length}: ${file.name}`;
 
     try {
-      const formData = new FormData();
-      formData.append("action", "upload");
-      formData.append("description", desc);
-      formData.append("file", file);
 
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        body: formData
+      // 1️⃣ Pedir URL firmada a Lambda
+      const response = await fetch(
+        "https://piv5s5li0j.execute-api.us-east-1.amazonaws.com/upload-url",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.uploadUrl) {
+        throw new Error("No se recibió URL de subida");
+      }
+
+      // 2️⃣ Subir directamente a S3
+      await fetch(data.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file
       });
 
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Error desconocido");
-
-    } catch (e) {
-      toast(`Error en ${file.name}: ${e.message}`, "error");
+    } catch (error) {
+      toast(`Error en ${file.name}: ${error.message}`, "error");
+      continue;
     }
 
     done++;
-    bar.style.width = `${Math.round(done / files.length * 100)}%`;
+    bar.style.width = `${Math.round((done / files.length) * 100)}%`;
   }
 
   label.textContent = `¡Listo! ${done} imagen(es) subidas ✓`;
@@ -122,7 +136,6 @@ async function uploadFiles() {
   setTimeout(() => {
     selectedFiles = [];
     strip.innerHTML = "";
-    document.getElementById("description").value = "";
     fileInput.value = "";
     bar.style.width = "0%";
     wrap.style.display = "none";
