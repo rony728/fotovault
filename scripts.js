@@ -95,23 +95,21 @@ async function uploadFiles() {
     label.textContent = `Subiendo ${done + 1} de ${files.length}: ${file.name}`;
 
     try {
-      const b64 = await toBase64(file);
+      const formData = new FormData();
+      formData.append("action", "upload");
+      formData.append("description", desc);
+      formData.append("file", file);
+
       const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'upload',
-          filename: file.name,
-          mimeType: file.type,
-          data: b64,
-          description: desc
-        })
+        method: "POST",
+        body: formData
       });
 
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Error desconocido');
+      if (!json.success) throw new Error(json.error || "Error desconocido");
 
     } catch (e) {
-      toast(`Error en ${file.name}: ${e.message}`, 'error');
+      toast(`Error en ${file.name}: ${e.message}`, "error");
     }
 
     done++;
@@ -119,26 +117,17 @@ async function uploadFiles() {
   }
 
   label.textContent = `¡Listo! ${done} imagen(es) subidas ✓`;
-  toast(`${done} imagen(es) subidas ✓`, 'success');
+  toast(`${done} imagen(es) subidas ✓`, "success");
 
   setTimeout(() => {
     selectedFiles = [];
-    strip.innerHTML = '';
-    document.getElementById('description').value = '';
-    fileInput.value = '';
-    bar.style.width = '0%';
-    wrap.style.display = 'none';
+    strip.innerHTML = "";
+    document.getElementById("description").value = "";
+    fileInput.value = "";
+    bar.style.width = "0%";
+    wrap.style.display = "none";
     uploadBtn.disabled = true;
-  }, 2500);
-}
-
-function toBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+  }, 2000);
 }
 
 async function loadGallery() {
